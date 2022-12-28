@@ -1,41 +1,80 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+var createError = require("http-errors");
+var express = require("express");
+var path = require("path");
+var cookieParser = require("cookie-parser");
+var logger = require("morgan");
+const router = express.Router();
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+var indexRouter = require("./routes/index");
+var usersRouter = require("./routes/users");
 
 var app = express();
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+const myLogger = (req, res, next) => {
+    console.log('LOGGED');
+    next();
+}
 
-app.use(logger('dev'));
+const requestTime = (req, res, next) => {
+    req.requestTime = Date.now();
+    next();
+}
+
+// view engine setup
+app.set("views", path.join(__dirname, "views"));
+app.set("view engine", "jade");
+
+app.use(myLogger);
+app.use(requestTime);
+
+app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use("/", indexRouter);
+app.use("/users", usersRouter);
+app.use("/users/:userId", (req, res) => res.send(req.params));
+app.use("/middleware", (req, res) => {
+    let reponseText = 'Hello World!<br>'
+    reponseText += `<small>Requested at: ${req.requestTime}</small`;
+    res.send(reponseText);
+});
+app.get(
+  "/example/b",
+  (req, res, next) => {
+    console.log("the response will be sent by the next function ...");
+    next();
+  },
+  (req, res) => {
+    res.download("public/images/sad_dog.jpg");
+  }
+);
+
+router.use((req, res, next) => {
+  console.log("Time: ", Date.now());
+  next();
+});
+
+router.get("/", (req, res) => res.send("about"));
+
+app.use("/time", router);
 
 // catch 404 and forward to error handler
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   next(createError(404));
 });
 
 // error handler
-app.use(function(err, req, res, next) {
+app.use(function (err, req, res, next) {
   // set locals, only providing error in development
   res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+  res.locals.error = req.app.get("env") === "development" ? err : {};
 
   // render the error page
   res.status(err.status || 500);
-  res.render('error');
+  res.render("error");
 });
 
 module.exports = app;
