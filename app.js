@@ -11,14 +11,14 @@ var usersRouter = require("./routes/users");
 var app = express();
 
 const myLogger = (req, res, next) => {
-    console.log('LOGGED');
-    next();
-}
+  console.log("LOGGED");
+  next();
+};
 
 const requestTime = (req, res, next) => {
-    req.requestTime = Date.now();
-    next();
-}
+  req.requestTime = Date.now();
+  next();
+};
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
@@ -35,12 +35,35 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
-app.use("/users/:userId", (req, res) => res.send(req.params));
 app.use("/middleware", (req, res) => {
-    let reponseText = 'Hello World!<br>'
-    reponseText += `<small>Requested at: ${req.requestTime}</small`;
-    res.send(reponseText);
+  let reponseText = "Hello World!<br>";
+  reponseText += `<small>Requested at: ${req.requestTime}</small`;
+  res.send(reponseText);
 });
+
+// predicate the router with a check and bail out when needed
+router.use((req, res, next) => {
+  if (!req.headers["x-auth"]) res.sendStatus(500);
+  next();
+});
+
+router.get("/user/:id", (req, res) => {
+  console.log("a");
+});
+
+router.get("/user/:id", (req, res) => {
+  console.log("b");
+});
+
+// use the router and 401 anything falling through
+app.use("/admin", router, (req, res) => {
+  res.sendStatus(401);
+});
+
+app.use("/error", (req, res) => {
+  throw new Error("error occured");
+});
+
 app.get(
   "/example/b",
   (req, res, next) => {
